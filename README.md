@@ -125,6 +125,24 @@ The sample rules are not meant to be used all at the same time. They are pieces 
 
 If you want to learn more about writing custom rules, look for the audit.rules and auditctl man pages.
 
+### Validating and normalizing rules
+
+`audit-rule-compiler` checks a rule set before it is loaded. It reports the
+source file and line for field conflicts, duplicate rules, invalid list/field
+combinations, and impossible numeric ranges. It can also emit a canonical rule
+set by merging syscall masks with identical bodies and merging repeated path
+watches:
+
+```
+audit-rule-compiler --check /etc/audit/rules.d/*.rules
+audit-rule-compiler -o /etc/audit/audit.rules.next /etc/audit/rules.d/*.rules
+```
+
+The compiler does not replace `auditctl` for checking kernel feature support;
+load the generated file with `augenrules --load` or `auditctl -R` after a
+successful compile. See `audit-rule-compiler(8)` and
+`/usr/share/doc/audit/audit-rule-compiler/examples/` for examples.
+
 ## EVENTS
 The audit events come in two flavors: simple and compound. A simple event is sent from a trusted application such as sshd. It has only one record in the event. A compound event has multiple records in the same event. These multiple records are considered to be in the same event because they have the same timestamp and serial number.
 

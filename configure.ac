@@ -555,7 +555,8 @@ AC_CONFIG_FILES([Makefile common/Makefile autls/Makefile lib/Makefile lib/audit.
        bindings/swig/Makefile bindings/swig/src/Makefile
        bindings/swig/python3/Makefile tools/Makefile tools/aulast/Makefile
        tools/aulast/test/Makefile init.d/augenrules
-       tools/aulastlog/Makefile tools/ausyscall/Makefile m4/Makefile])
+       tools/aulastlog/Makefile tools/ausyscall/Makefile \
+       tools/audit-rule-compiler/Makefile m4/Makefile])
 AC_CONFIG_COMMANDS([chmod-auparse-tests],
 	[chmod +x auparse/test/run_auparse_tests.sh \
 		auparse/test/run_auparselol_test.sh])

@@ -1,0 +1,62 @@
+## Twenty intentionally conflicting rule examples.
+## Each line contains one independent field, range, or context conflict.
+
+# 01: one rule cannot target both ABIs.
+-a always,exit -F arch=b32 -F arch=b64 -S open
+
+# 02: a rule cannot watch two different files.
+-a always,exit -F arch=b64 -F path=/etc/passwd -F path=/etc/shadow -F perm=r
+
+# 03: a rule cannot watch two different directory trees.
+-a always,exit -F arch=b64 -F dir=/etc -F dir=/var -F perm=wa
+
+# 04: path and dir are mutually exclusive watch selectors.
+-a always,exit -F arch=b64 -F path=/etc/passwd -F dir=/etc -F perm=r
+
+# 05: two different uid equalities can never both match.
+-a always,exit -F arch=b64 -S open -F uid=1000 -F uid=1001
+
+# 06: an equality and an inequality on the same value contradict.
+-a always,exit -F arch=b64 -S open -F uid=1000 -F uid!=1000
+
+# 07: the lower auid bound is above the upper bound.
+-a always,exit -F arch=b64 -S open -F auid>=2000 -F auid<=1000
+
+# 08: the pid range is empty.
+-a always,exit -F arch=b64 -S open -F pid>100 -F pid<100
+
+# 09: two different errno values cannot both equal exit.
+-a always,exit -F arch=b64 -S open -F exit=-EPERM -F exit=-EACCES
+
+# 10: success is a boolean.
+-a always,exit -F arch=b64 -S open -F success=1 -F success=0
+
+# 11: inode identity is unique.
+-a always,exit -F arch=b64 -S open -F inode=10 -F inode=11
+
+# 12: file type identity is unique.
+-a always,exit -F arch=b64 -S open -F filetype=file -F filetype=dir
+
+# 13: address family identity is unique.
+-a always,exit -F arch=b64 -S open -F saddr_fam=inet -F saddr_fam=inet6
+
+# 14: msgtype belongs on the exclude or user list, not exit.
+-a always,exit -F arch=b64 -S open -F msgtype=EXECVE
+
+# 15: fstype belongs on the filesystem list, not exit.
+-a always,exit -F arch=b64 -S open -F fstype=ext4
+
+# 16: exit status is not available on the task list.
+-a always,task -F exit=0
+
+# 17: old-style watches may not carry -F fields.
+-w /etc/passwd -F uid=0
+
+# 18: old-style watches may not carry syscalls.
+-w /etc/passwd -S open
+
+# 19: a field compared against itself can never differ.
+-a always,exit -F arch=b64 -S open -C uid!=uid
+
+# 20: constants make an interfield equality impossible.
+-a always,exit -F arch=b64 -S open -F uid=10 -F auid=20 -C uid=auid

@@ -1,0 +1,2 @@
+-a always,exit -F arch=b64 -F path=/etc/passwd -F perm=r -F auid>=1000 -F auid!=unset -S open,openat,openat2 -k access
+-w /etc/shadow -p rwxa -k identity

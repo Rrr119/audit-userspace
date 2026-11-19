@@ -1,0 +1,3 @@
+## The same rule is expressed with different option order.
+-a always,exit -F arch=b64 -S open,openat -F path=/etc/passwd -F perm=r -k access
+-a always,exit -F arch=b64 -F perm=r -F path=/etc/passwd -k access -S openat,open

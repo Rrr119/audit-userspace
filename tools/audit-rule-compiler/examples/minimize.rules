@@ -1,0 +1,9 @@
+## Three syscall variants that can share one body and one syscall mask.
+-a always,exit -F arch=b64 -S open -F path=/etc/passwd -F perm=r -F auid>=1000 -F auid!=unset -k access
+-a always,exit -F arch=b64 -S openat -F path=/etc/passwd -F perm=r -F auid>=1000 -F auid!=unset -k access
+-a always,exit -F arch=b64 -S openat2 -F path=/etc/passwd -F perm=r -F auid>=1000 -F auid!=unset -k access
+
+## Repeated watches on one path collapse into one permission mask.
+-w /etc/shadow -p r -k identity
+-w /etc/shadow -p wa -k identity
+-w /etc/shadow -p x -k identity

@@ -1,0 +1,156 @@
+.TH AUDIT-RULE-COMPILER "8" "Nov 2026" "Red Hat" "System Administration Utilities"
+.SH NAME
+audit-rule-compiler \- validate and normalize Linux audit rule files
+.SH SYNOPSIS
+.B audit-rule-compiler
+[\fIOPTIONS\fP] \fIFILE\fP...
+.SH DESCRIPTION
+.B audit-rule-compiler
+reads audit rules in the same format accepted by
+.BR auditctl (8)
+and checks the combined rule set before it is loaded.
+It reports the source file, line number, and the conflicting or duplicate
+terms instead of only reporting the line that failed to load.
+
+The compiler also produces a canonical rule set.  Rules with identical
+actions, filters, fields, and keys are merged by unioning their syscall
+masks.  Repeated watches for the same path and key are merged by unioning
+their permission masks.  Fields, keys, and syscalls are sorted so that the
+result is stable and can be compiled again without further changes.
+
+When the same rule appears more than once, the later copy is reported as a
+duplicate and removed from the output.  Numeric equality, inequality, and
+range terms are checked for empty intersections.  String identity fields
+such as
+.B arch ,
+.BR path ,
+.BR dir ,
+and
+.B key
+are checked for contradictory values.  Interfield comparisons created with
+.B \-C
+are checked against each other and against constant equality terms.
+
+Input files are parsed in command-line order.  This allows a rules directory
+to be checked as one set, which is useful before running
+.BR augenrules (8)
+or
+.BR auditctl (8).
+.SH OPTIONS
+.TP
+.BR \-c ", " \-\-check
+Validate only.  Do not write normalized rules to standard output or to the
+file selected with
+.BR \-o .
+.TP
+.BR \-q ", " \-\-quiet
+Suppress warnings and the final summary.  Errors and conflicts are still
+written to standard error.
+.TP
+.BR \-s ", " \-\-strict
+Treat warnings, such as redundant fields and tautological comparisons, as
+errors.
+.TP
+.BR \-k ", " \-\-keep-comments
+Keep comment lines in the normalized output.
+.TP
+.BR \-n ", " \-\-no-minimize
+Do not merge rules.  Conflicts, duplicates, and canonical field ordering are
+still checked.
+.TP
+.BR \-f ", " \-\-force
+Write output even when errors were found.  The exit status still reports the
+failure.  This is intended for inspecting a partial normalization.
+.TP
+.BI \-o " FILE"
+Write normalized rules to
+.IR FILE .
+The special name
+.B \-
+means standard output.
+.TP
+.BR \-h ", " \-\-help
+Show usage information.
+.TP
+.BR \-V ", " \-\-version
+Show the program version.
+.SH DIAGNOSTICS
+Diagnostics use the following form:
+
+.nf
+file:line: error: conflict: message
+file:line: error: message
+file:line: warning: message
+.fi
+
+Common conflicts include contradictory equality values, an equality paired
+with an incompatible inequality, empty numeric ranges, repeated
+.B perm
+bit tests, incompatible
+.B path
+and
+.B dir
+selectors, fields used on the wrong filter list, and watches combined with
+.BR \-F ,
+.BR \-C ,
+or
+.B \-S
+terms.
+
+Exact duplicate rules are errors because loading the second rule normally
+fails with
+.BR EEXIST .
+The duplicate is removed from the output.  The first definition is named in
+the diagnostic.
+.SH EXIT STATUS
+.TP
+.B 0
+The rule set is valid and normalized output was produced when requested.
+.TP
+.B 1
+At least one rule conflict, duplicate rule, syntax error, or strict-mode
+warning was found.
+.TP
+.B 2
+Command-line usage, input, or output error.
+.SH EXAMPLES
+Check every rule file as one combined set:
+
+.nf
+audit-rule-compiler --check /etc/audit/rules.d/*.rules
+.fi
+
+Write a minimal, canonical rule file:
+
+.nf
+audit-rule-compiler -o /etc/audit/audit.rules.next \\
+    /etc/audit/rules.d/*.rules
+.fi
+
+Review the twenty intentionally conflicting examples:
+
+.nf
+audit-rule-compiler --check \\
+    /usr/share/doc/audit/audit-rule-compiler/examples/conflicts.rules
+.fi
+.SH NOTES
+The compiler validates rule syntax and field-level logical consistency.  It
+does not replace
+.BR auditctl (8)
+for checking whether the running kernel supports a particular field,
+feature, architecture, or syscall.  A successful compile should still be
+followed by
+.B auditctl \-R
+or
+.B augenrules \-\-load
+in the target environment.
+
+Backslash-escaped spaces and backslashes are interpreted in the same way as
+the auditctl rules file reader.  Line continuation is not supported.
+.SH "SEE ALSO"
+.BR audit.rules (7),
+.BR auditctl (8),
+.BR augenrules (8),
+.BR auditd (8).
+.SH AUTHOR
+Red Hat Inc.
