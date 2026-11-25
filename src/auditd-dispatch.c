@@ -33,8 +33,26 @@
 #include "libaudit.h"
 #include "private.h"
 #include "auditd-dispatch.h"
+#include "auditd-alert.h"
 #include "libdisp.h"
 
+
+static struct audit_alert_engine *dispatch_alert_engine;
+
+/*
+ * auditd_dispatch_set_alert_engine - attach a non-owning alert engine
+ * @engine: engine to inspect valid outgoing records, or NULL to detach
+ *
+ * The engine is called before dispatcher queueing so plugin backpressure or
+ * drops do not suppress rule alerts. Dispatch return codes and queue ownership
+ * remain unchanged.
+ *
+ * Returns: None.
+ */
+void auditd_dispatch_set_alert_engine(struct audit_alert_engine *engine)
+{
+	dispatch_alert_engine = engine;
+}
 
 /* This function returns 1 on error & 0 on success */
 int init_dispatcher(const struct daemon_conf *config)
@@ -61,6 +79,8 @@ void reconfigure_dispatcher(const struct daemon_conf *config)
 int dispatch_event(const struct audit_reply *rep, int protocol_ver)
 {
 	event_t *e;
+	const char *alert_payload = NULL;
+	size_t alert_length = 0;
 	int rc;
 
 	if (!libdisp_active())
@@ -88,14 +108,24 @@ int dispatch_event(const struct audit_reply *rep, int protocol_ver)
 		}
 		e->hdr.size = rep->msg.nlh.nlmsg_len;
 		memcpy(e->data, (void*)rep->msg.data, e->hdr.size);
+		alert_payload = (const char *)rep->msg.data;
+		alert_length = e->hdr.size;
 	} else if (protocol_ver == AUDISP_PROTOCOL_VER2) {
 		e->hdr.size = rep->len;
 		memcpy(e->data, (void*)rep->message, e->hdr.size);
+		alert_payload = rep->message;
+		alert_length = e->hdr.size;
 	} else {
 		free(e);
 		increment_plugin_dropped();
 		return 0;
 	}
+
+	if (dispatch_alert_engine != NULL && alert_payload != NULL)
+		(void)audit_alert_engine_process(dispatch_alert_engine,
+						 rep->type, alert_payload,
+						 alert_length);
+
 	rc = libdisp_enqueue(e);
 	if (rc < 0)
 		increment_plugin_dropped();

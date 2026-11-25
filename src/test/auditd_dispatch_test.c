@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "auditd-dispatch.h"
+#include "../auditd-alert.h"
 #include "libdisp.h"
 
 static event_t *queued_event;
@@ -21,6 +22,26 @@ static int plugins_active = 1;
 static int enqueue_rc;
 static int fail_alloc;
 static unsigned int plugin_dropped;
+static unsigned int dispatch_alert_calls;
+static uint64_t dispatch_alert_count;
+static int dispatch_alert_syscall;
+
+/*
+ * capture_dispatch_alert - record an alert from the dispatch observation tap
+ * @notification: aggregated alert notification
+ * @user_data: unused callback context
+ *
+ * Returns: None.
+ */
+static void capture_dispatch_alert(
+		const struct audit_alert_notification *notification,
+		void *user_data)
+{
+	(void)user_data;
+	dispatch_alert_calls++;
+	dispatch_alert_count = notification->count;
+	dispatch_alert_syscall = notification->syscall;
+}
 
 /*
  * test_malloc - fail the event allocation when directed by a test
@@ -38,6 +59,7 @@ static void *test_malloc(size_t size)
 #define malloc test_malloc
 #include "../auditd-dispatch.c"
 #undef malloc
+#include "../auditd-alert.c"
 
 /*
  * libdisp_active - report whether plugins are configured
@@ -293,6 +315,46 @@ static void test_v2_protocol_uses_rep_len(void)
 	free_queued_event();
 }
 
+/*
+ * test_dispatch_alert_tap - alerting observes records without changing delivery
+ *
+ * Returns: None.
+ */
+static void test_dispatch_alert_tap(void)
+{
+	struct audit_alert_engine *alert;
+	struct audit_reply rep;
+	const char *payload =
+		"audit(1721000100.001:9): arch=c000003e syscall=59 "
+		"comm=\"id\" key=\"dispatch-alert\"";
+	unsigned int length = (unsigned int)strlen(payload);
+
+	memset(&rep, 0, sizeof(rep));
+	rep.type = AUDIT_SYSCALL;
+	rep.nlh = &rep.msg.nlh;
+	rep.msg.nlh.nlmsg_len = length;
+	memcpy(rep.msg.data, payload, length);
+
+	alert = audit_alert_engine_new(capture_dispatch_alert, NULL);
+	assert(alert != NULL);
+	auditd_dispatch_set_alert_engine(alert);
+	dispatch_alert_calls = 0;
+	dispatch_alert_count = 0;
+	dispatch_alert_syscall = 0;
+
+	assert(dispatch_event(&rep, AUDISP_PROTOCOL_VER) == 0);
+	assert(dispatch_alert_calls == 1);
+	assert(dispatch_alert_count == 1);
+	assert(dispatch_alert_syscall == 59);
+	assert(queued_event != NULL);
+	assert(queued_event->hdr.type == AUDIT_SYSCALL);
+	assert(queued_event->hdr.size == length);
+	free_queued_event();
+
+	auditd_dispatch_set_alert_engine(NULL);
+	audit_alert_engine_free(alert);
+}
+
 int main(void)
 {
 	test_netlink_payload_length();
@@ -300,6 +362,7 @@ int main(void)
 	test_synthetic_payload_length();
 	test_realistic_user_event();
 	test_v2_protocol_uses_rep_len();
+	test_dispatch_alert_tap();
 	test_dispatch_drops();
 	test_uncounted_returns();
 	return 0;

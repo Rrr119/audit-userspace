@@ -547,6 +547,7 @@ AC_CONFIG_FILES([Makefile common/Makefile autls/Makefile lib/Makefile lib/audit.
        docs/Makefile rules/Makefile init.d/Makefile
        audisp/Makefile audisp/test/Makefile
        audisp/plugins/Makefile audisp/plugins/af_unix/Makefile
+       audisp/plugins/alert/Makefile
        audisp/plugins/remote/Makefile audisp/plugins/zos-remote/Makefile
        audisp/plugins/syslog/Makefile audisp/plugins/filter/Makefile
        audisp/plugins/ids/Makefile audisp/plugins/ids/rules/Makefile

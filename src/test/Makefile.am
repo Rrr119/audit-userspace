@@ -28,12 +28,14 @@ AM_LDFLAGS += ${ASAN_FLAGS}
 endif
 check_PROGRAMS = ilist_test slist_test format_event_test \
 	auditd_config_alloc_test ausearch_checkpt_test auditd_dispatch_test \
+	auditd_alert_test \
 	ilist_alloc_test auditd_config_manager_test auditd_log_test \
 	auditd_reconfigure_test \
 	lol_alloc_test auditctl_key_test auditctl_list_alloc_test \
 	delete_all_alloc_test ausearch_time_test auditctl_rule_file_test
 TESTS = $(check_PROGRAMS) ausearch_options_test.sh
 dist_check_SCRIPTS = ausearch_options_test.sh
+auditd_alert_test_SOURCES = auditd_alert_test.c
 ilist_test_LDADD = ${top_builddir}/src/ausearch-int.o
 ilist_test_DEPENDENCIES = ${top_builddir}/src/ausearch-int.o
 ilist_alloc_test_SOURCES = ilist_alloc_test.c
@@ -52,7 +54,8 @@ format_event_test_SOURCES = format_event_test.c \
 	${top_srcdir}/src/auditd-reconfigure.c \
 	${top_srcdir}/src/auditd-config.c \
 	${top_srcdir}/src/auditd-sendmail.c \
-	${top_srcdir}/src/auditd-dispatch.c
+	${top_srcdir}/src/auditd-dispatch.c \
+	${top_srcdir}/src/auditd-alert.c
 format_event_test_LDADD = ${top_builddir}/lib/libaudit.la \
 	${top_builddir}/auparse/libauparse.la \
 	${top_builddir}/audisp/libdisp.la \

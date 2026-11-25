@@ -1,0 +1,38 @@
+.TH AUDISP-ALERT "8" "November 2026" "Red Hat" "System Administration Utilities"
+.SH NAME
+audisp-alert \- real-time audit rule alerts aggregated by syscall
+.SH SYNOPSIS
+.B audisp-alert
+[ \fIPRIORITY\fP ] [ \fBrules=\fP\fIFILE\fP ]
+.SH DESCRIPTION
+\fBaudisp-alert\fP is an audit event dispatcher plugin. It reads string-format audit records from the dispatcher, selects \fISYSCALL\fP records produced by loaded audit rules, and emits syslog alerts. Counts are kept per syscall so repeated activity produces an aggregated count.
+.PP
+The plugin is compatible with the normal \fBaudispd\fP(8) plugin protocol. Set \fIformat = string\fP in \fIalert.conf\fP. The plugin does not change or acknowledge audit records and existing dispatcher plugins continue to receive the same events.
+.PP
+A rule file is optional. Each non-comment line has the form:
+.PP
+.RS
+\fIsyscall\fP [ \fIkey\fP ] [ \fIthreshold\fP ]
+.RE
+.PP
+The syscall may be a number, a name, or \fB*\fP. The key may be an audit rule key or \fB*\fP. When a threshold greater than one is supplied, an alert is emitted every \fIthreshold\fP occurrences for that syscall. Without a rule file, every \fISYSCALL\fP record is selected and alerts are emitted immediately.
+.PP
+Syslog priorities from \fBLOG_DEBUG\fP through \fBLOG_EMERG\fP and common facility names are accepted on the \fBargs\fP line. The default priority is \fBLOG_ALERT\fP.
+.SH EXAMPLES
+The following rule file selects an execve key immediately and batches openat alerts every fifty occurrences:
+.PP
+.RS
+.nf
+59 exec-watch 1
+openat * 50
+.fi
+.RE
+.SH FILES
+.I /etc/audit/plugins.d/alert.conf
+.br
+.I /etc/audit/audisp-alert.rules
+.SH "SEE ALSO"
+.BR auditd (8),
+.BR audispd (8),
+.BR auditd-plugins (5),
+.BR syslog (3).
